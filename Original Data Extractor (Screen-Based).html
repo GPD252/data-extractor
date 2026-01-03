@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Screen Media Extractor</title>
+    <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIlBybyBFeHRyYWN0b3IiLAogICJzaG9ydF9uYW1lIjogIkV4dHJhY3RvciIsCiAgInN0YXJ0X3VjsjogIi4iLAogICJkaXNwbGF5IjogInN0YW5kYWxvbmUiLAogICJiYWNrZ3JvdW5kX2NvbG9yIjogIiMwMDAwMDAiLAogICJ0aGVtZV9jb2xvciI6ICIjMDBmZjg4IiwKICAiaWNvbnMiOiBbCiAgICB7CiAgICAgICJzcmMiOiAiaHR0cHM6Ly9jZG4taWNvbnMtcG5nLmZsaXRpY29uLmNvbS81MTIvODg4Lzg4ODEzMi5wbmciLAogICAgICAic2l6ZXMiOiAiNTEyeDUxMiIsCiAgICAgICJ0eXBlIjogImltYWdlL3BuZyIKICAgIH1cbiAgXQp9">
+    <style>
+        body { background: #0a0a0a; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .panel { background: #1a1a1a; padding: 30px; border-radius: 25px; border: 1px solid #333; text-align: center; width: 85%; }
+        .btn-run { background: #00ff88; color: black; border: none; padding: 20px; border-radius: 15px; font-weight: bold; width: 100%; font-size: 1.1rem; cursor: pointer; }
+        .btn-stop { background: #ff4444; color: white; display: none; }
+        #status { margin-top: 20px; color: #888; font-size: 0.9rem; }
+        video { width: 100%; border-radius: 10px; margin-top: 15px; display: none; }
+    </style>
+</head>
+<body>
+
+<div class="panel">
+    <h3>Original Screen Grabber</h3>
+    <div id="status">Bypass Mode Ready</div>
+    
+    <button id="startBtn" class="btn-run">RUN EXTRACTION</button>
+    <button id="stopBtn" class="btn-run btn-stop">STOP & DOWNLOAD</button>
+    
+    <video id="preview" autoplay muted></video>
+</div>
+
+<script>
+    let recorder;
+    let chunks = [];
+
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const status = document.getElementById('status');
+
+    startBtn.onclick = async () => {
+        try {
+            // Android/PC screen capture permission
+            const stream = await navigator.mediaDevices.getDisplayMedia({
+                video: { frameRate: 60, cursor: "never" },
+                audio: true
+            });
+
+            status.innerText = "EXTRACTING ORIGINAL DATA...";
+            startBtn.style.display = 'none';
+            stopBtn.style.display = 'block';
+
+            recorder = new MediaRecorder(stream, { mimeType: 'video/webm; codecs=vp9' });
+            chunks = [];
+
+            recorder.ondataavailable = e => chunks.push(e.data);
+            recorder.onstop = () => {
+                const blob = new Blob(chunks, { type: 'video/webm' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `Original_Data_${Date.now()}.webm`;
+                a.click();
+                status.innerText = "Original Saved to Gallery";
+            };
+
+            recorder.start();
+            
+            // Auto-stop when screen sharing ends
+            stream.getVideoTracks()[0].onended = () => stopBtn.click();
+
+        } catch (err) {
+            alert("Bypass Error: Android requires Secure HTTPS. Please use the GitHub link.");
+        }
+    };
+
+    stopBtn.onclick = () => {
+        recorder.stop();
+        recorder.stream.getTracks().forEach(t => t.stop());
+        startBtn.style.display = 'block';
+        stopBtn.style.display = 'none';
+    };
+</script>
+
+</body>
+</html>
